@@ -81,13 +81,17 @@ class VenvContainer:
 class Venv:
     """Abstraction for a virtual environment with various useful methods for pipx"""
 
-    def __init__(self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON) -> None:
+    def __init__(
+        self, path: Path, *, verbose: bool = False, python: str = DEFAULT_PYTHON, pipe_pip_ouput: bool = False
+    ) -> None:
         self.root = path
         self.python = python
         self.bin_path, self.python_path, self.man_path = get_venv_paths(self.root)
         self.pipx_metadata = PipxMetadata(venv_dir=path)
         self.verbose = verbose
         self.do_animation = not verbose
+        self.pipe_pip_ouput = pipe_pip_ouput
+        self.do_pip_animation = self.do_animation and not self.pipe_pip_ouput
         try:
             self._existing = self.root.exists() and bool(next(self.root.iterdir()))
         except StopIteration:
@@ -215,7 +219,7 @@ class Venv:
     def uninstall_package(self, package: str, was_injected: bool = False):
         try:
             logger.info("Uninstalling %s", package)
-            with animate(f"uninstalling {package}", self.do_animation):
+            with animate(f"uninstalling {package}", self.do_pip_animation):
                 cmd = ["uninstall", "-y"] + [package]
                 self._run_pip(cmd)
         except PipxError as e:
@@ -243,7 +247,7 @@ class Venv:
         (package_or_url, pip_args) = parse_specifier_for_install(package_or_url, pip_args)
 
         logger.info("Installing %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"installing {package_descr}", self.do_animation):
+        with animate(f"installing {package_descr}", self.do_pip_animation):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = [
@@ -257,7 +261,14 @@ class Venv:
             ]
             # no logging because any errors will be specially logged by
             #   subprocess_post_check_handle_pip_error()
-            pip_process = run_subprocess(cmd, log_stdout=False, log_stderr=False, run_dir=str(self.root))
+            pip_process = run_subprocess(
+                cmd,
+                log_stdout=False,
+                log_stderr=False,
+                run_dir=str(self.root),
+                capture_stderr=not self.pipe_pip_ouput,
+                capture_stdout=not self.pipe_pip_ouput,
+            )
         subprocess_post_check_handle_pip_error(pip_process)
         if pip_process.returncode:
             raise PipxError(f"Error installing {full_package_description(package_name, package_or_url)}.")
@@ -288,7 +299,7 @@ class Venv:
         # Note: We want to install everything at once, as that lets
         # pip resolve conflicts correctly.
         logger.info("Installing %s", package_descr := ", ".join(requirements))
-        with animate(f"installing {package_descr}", self.do_animation):
+        with animate(f"installing {package_descr}", self.do_pip_animation):
             # do not use -q with `pip install` so subprocess_post_check_pip_errors
             #   has more information to analyze in case of failure.
             cmd = [
@@ -308,7 +319,7 @@ class Venv:
             raise PipxError(f"Error installing {', '.join(requirements)}.")
 
     def install_package_no_deps(self, package_or_url: str, pip_args: List[str]) -> str:
-        with animate(f"determining package name from {package_or_url!r}", self.do_animation):
+        with animate(f"determining package name from {package_or_url!r}", self.do_pip_animation):
             old_package_set = self.list_installed_packages()
             cmd = [
                 "--no-input",
@@ -438,7 +449,7 @@ class Venv:
 
     def upgrade_package_no_metadata(self, package_name: str, pip_args: List[str]) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_name))
-        with animate(f"upgrading {package_descr}", self.do_animation):
+        with animate(f"upgrading {package_descr}", self.do_pip_animation):
             pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_name])
         subprocess_post_check(pip_process)
 
@@ -453,7 +464,7 @@ class Venv:
         suffix: str = "",
     ) -> None:
         logger.info("Upgrading %s", package_descr := full_package_description(package_name, package_or_url))
-        with animate(f"upgrading {package_descr}", self.do_animation):
+        with animate(f"upgrading {package_descr}", self.do_pip_animation):
             pip_process = self._run_pip(["--no-input", "install"] + pip_args + ["--upgrade", package_or_url])
         subprocess_post_check(pip_process)
 
@@ -471,7 +482,12 @@ class Venv:
         cmd = [str(self.python_path), "-m", "pip"] + cmd
         if not self.verbose:
             cmd.append("-q")
-        return run_subprocess(cmd, run_dir=str(self.root))
+        return run_subprocess(
+            cmd,
+            run_dir=str(self.root),
+            capture_stdout=not self.pipe_pip_ouput,
+            capture_stderr=not self.pipe_pip_ouput,
+        )
 
     def run_pip_get_exit_code(self, cmd: List[str]) -> ExitCode:
         cmd = [str(self.python_path), "-m", "pip"] + cmd

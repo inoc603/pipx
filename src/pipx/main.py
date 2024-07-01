@@ -283,6 +283,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             preinstall_packages=args.preinstall,
             suffix=args.suffix,
             python_flag_passed=python_flag_passed,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "install-all":
         return commands.install_all(
@@ -294,6 +295,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             venv_args,
             verbose,
             force=args.force,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "inject":
         return commands.inject(
@@ -328,6 +330,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             force=args.force,
             install=args.install,
             python_flag_passed=python_flag_passed,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "upgrade-all":
         return commands.upgrade_all(
@@ -338,11 +341,13 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             force=args.force,
             pip_args=pip_args,
             python_flag_passed=python_flag_passed,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "upgrade-shared":
         return commands.upgrade_shared(
             verbose,
             pip_args,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "list":
         return commands.list_packages(
@@ -385,6 +390,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             python=args.python,
             verbose=verbose,
             python_flag_passed=python_flag_passed,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "reinstall-all":
         return commands.reinstall_all(
@@ -395,6 +401,7 @@ def run_pipx_command(args: argparse.Namespace, subparsers: Dict[str, argparse.Ar
             verbose,
             skip=skip_list,
             python_flag_passed=python_flag_passed,
+            pipe_pip_output=args.pipe_pip_output,
         )
     elif args.command == "runpip":
         if not venv_dir:
@@ -431,6 +438,11 @@ def add_pip_venv_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--pip-args",
         help="Arbitrary pip arguments to pass directly to pip install/upgrade commands",
+    )
+    parser.add_argument(
+        "--pipe-pip-output",
+        help="Show output of pip command",
+        action="store_true",
     )
 
 

@@ -34,6 +34,7 @@ def install(
     preinstall_packages: Optional[List[str]],
     suffix: str = "",
     python_flag_passed=False,
+    pipe_pip_output: bool = False,
 ) -> ExitCode:
     """Returns pipx exit code."""
     # package_spec is anything pip-installable, including package_name, vcs spec,
@@ -58,7 +59,7 @@ def install(
         except StopIteration:
             exists = False
 
-        venv = Venv(venv_dir, python=python, verbose=verbose)
+        venv = Venv(venv_dir, python=python, verbose=verbose, pipe_pip_ouput=pipe_pip_output)
         venv.check_upgrade_shared_libs(pip_args=pip_args, verbose=verbose)
         if exists:
             if not reinstall and force and python_flag_passed:
@@ -184,6 +185,7 @@ def install_all(
     verbose: bool,
     *,
     force: bool,
+    pipe_pip_output: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
     venv_container = VenvContainer(paths.ctx.venvs)
@@ -210,6 +212,7 @@ def install_all(
                 include_dependencies=main_package.include_dependencies,
                 preinstall_packages=[],
                 suffix=main_package.suffix,
+                pipe_pip_output=pipe_pip_output,
             )
 
             # Install the injected packages

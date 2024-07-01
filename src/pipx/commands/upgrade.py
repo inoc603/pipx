@@ -116,6 +116,7 @@ def _upgrade_venv(
     venv_args: Optional[List[str]] = None,
     python: Optional[str] = None,
     python_flag_passed: bool = False,
+    pipe_pip_output,
 ) -> int:
     """Return number of packages with changed versions."""
     if not venv_dir.is_dir():
@@ -137,6 +138,7 @@ def _upgrade_venv(
                 include_dependencies=False,
                 preinstall_packages=None,
                 python_flag_passed=python_flag_passed,
+                pipe_pip_output=pipe_pip_output,
             )
             return 0
         else:
@@ -206,6 +208,7 @@ def upgrade(
     force: bool,
     install: bool,
     python_flag_passed: bool = False,
+    pipe_pip_output: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
 
@@ -236,6 +239,7 @@ def upgrade_all(
     skip: Sequence[str],
     force: bool,
     python_flag_passed: bool = False,
+    pipe_pip_output: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
     failed: List[str] = []
@@ -272,6 +276,7 @@ def upgrade_all(
 def upgrade_shared(
     verbose: bool,
     pip_args: List[str],
+    pipe_pip_output: bool = False,
 ) -> ExitCode:
     """Return pipx exit code."""
     from pipx.shared_libs import shared_libs
